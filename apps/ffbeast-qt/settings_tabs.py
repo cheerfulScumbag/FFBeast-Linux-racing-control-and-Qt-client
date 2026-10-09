@@ -135,11 +135,19 @@ class SettingsPage(QWidget):
         summary.setStyleSheet("color: #5b6470;")
         layout.addWidget(summary)
 
+        # Create a horizontal layout to act as our two columns
+        columns_layout = QHBoxLayout()
+        columns_layout.setSpacing(16)
+        
+        left_column = QVBoxLayout()
+        right_column = QVBoxLayout()
+
         sections: dict[str, list[FieldSpec]] = {}
         for spec in self._specs:
             sections.setdefault(spec.section, []).append(spec)
 
-        for section_name, section_specs in sections.items():
+        # Alternately distribute the settings groups into left and right tracks
+        for i, (section_name, section_specs) in enumerate(sections.items()):
             group = QGroupBox(section_name, self)
             group_layout = QFormLayout(group)
             group_layout.setHorizontalSpacing(18)
@@ -150,7 +158,19 @@ class SettingsPage(QWidget):
                 self._widgets[spec.key] = widget
                 group_layout.addRow(spec.label, widget)
 
-            layout.addWidget(group)
+            if i % 2 == 0:
+                left_column.addWidget(group)
+            else:
+                right_column.addWidget(group)
+
+        # Force all widgets to anchor tightly to the top of their track
+        left_column.addStretch(1)
+        right_column.addStretch(1)
+
+        # Nest the columns back into the main layout flow
+        columns_layout.addLayout(left_column, 1)
+        columns_layout.addLayout(right_column, 1)
+        layout.addLayout(columns_layout)
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)
@@ -158,7 +178,6 @@ class SettingsPage(QWidget):
         apply_button.clicked.connect(self._emit_updates)
         button_row.addWidget(apply_button)
         layout.addLayout(button_row)
-        layout.addStretch(1)
 
     def _create_widget(self, spec: FieldSpec, parent: QWidget) -> QWidget:
         if spec.widget == "slider":
